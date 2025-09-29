@@ -7,7 +7,5 @@ from pathlib import Path
 root = Path(__file__).parent.parent
 sys.path.insert(0, str(root / "src"))
 
-from mcp_registry_search.api import app
-
-# Vercel expects this
-app = app
+# Import and export the FastAPI app
+from mcp_registry_search.api import app  # noqa: F401
