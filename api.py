@@ -1,8 +1,10 @@
 """FastAPI application for MCP registry search."""
 
+import asyncio
+import os
 from typing import Annotated
 
-from fastapi import FastAPI, Query
+from fastapi import FastAPI, Header, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
@@ -114,6 +116,34 @@ def list_servers(
         offset=offset,
         count=len(servers)
     )
+
+
+@app.get("/api/cron/etl")
+async def etl_cron(authorization: Annotated[str | None, Header()] = None):
+    """
+    ETL cron job endpoint. Runs nightly via Vercel Cron.
+
+    This endpoint is protected by Vercel Cron's authorization header.
+    """
+    # Verify this is called by Vercel Cron
+    # Vercel Cron sends a bearer token in the Authorization header
+    if authorization:
+        expected_token = os.getenv("CRON_SECRET")
+        if expected_token and authorization != f"Bearer {expected_token}":
+            raise HTTPException(status_code=401, detail="Unauthorized")
+
+    # Import ETL main function
+    from etl import main as etl_main
+
+    # Run ETL
+    try:
+        await etl_main()
+        return {
+            "status": "success",
+            "message": "ETL pipeline completed successfully"
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"ETL failed: {str(e)}")
 
 
 if __name__ == "__main__":

@@ -41,10 +41,7 @@ Semantic search API for MCP (Model Context Protocol) servers using hybrid search
 ### 1. Install dependencies
 
 ```bash
-cd registry
-uv venv
-source .venv/bin/activate  # On Windows: .venv\Scripts\activate
-uv pip install -e .
+uv sync
 ```
 
 ### 2. Set up Supabase
@@ -68,7 +65,7 @@ Edit `.env` and add:
 ### 4. Run ETL to fetch and index servers
 
 ```bash
-python etl.py
+uv run etl.py
 ```
 
 This will:
@@ -89,7 +86,7 @@ API available at `http://localhost:8000`
 
 **FastMCP (MCP Server):**
 ```bash
-python mcp_server.py
+uv run mcp_server.py
 ```
 
 ## API Usage
@@ -130,8 +127,9 @@ The FastMCP server provides:
 {
   "mcpServers": {
     "registry-search": {
-      "command": "python",
-      "args": ["/path/to/registry/mcp_server.py"],
+      "command": "uv",
+      "args": ["run", "mcp_server.py"],
+      "cwd": "/path/to/mcp-registry-search",
       "env": {
         "OPENAI_API_KEY": "your-key",
         "SUPABASE_URL": "your-url",
@@ -156,12 +154,16 @@ npm i -g vercel
 vercel env add OPENAI_API_KEY
 vercel env add SUPABASE_URL
 vercel env add SUPABASE_KEY
+vercel env add CRON_SECRET  # Random secret to protect cron endpoint
 ```
 
 3. Deploy:
 ```bash
 vercel
 ```
+
+**Automatic ETL Updates:**
+The project includes a Vercel Cron job that runs nightly at midnight (UTC) to refresh the server index. The cron job calls `/api/cron/etl` which is protected by the `CRON_SECRET` environment variable.
 
 ### FastMCP Server
 
@@ -170,16 +172,24 @@ The FastMCP server can be:
 - Hosted on any server with Python support
 - Deployed as an SSE or HTTP endpoint (change `transport` in `mcp_server.py`)
 
-## ETL Updates
+## Manual ETL Updates
 
-Run the ETL periodically to keep the index fresh:
+To manually refresh the server index:
 
+**Locally:**
 ```bash
-# Set up a cron job
-0 0 * * * cd /path/to/registry && python etl.py
+uv run etl.py
+# or
+make etl
 ```
 
-Or use Vercel Cron Jobs, GitHub Actions, or any scheduler.
+**On Vercel (trigger cron endpoint):**
+```bash
+curl -X GET https://your-project.vercel.app/api/cron/etl \
+  -H "Authorization: Bearer YOUR_CRON_SECRET"
+```
+
+The automatic nightly cron job handles updates, but you can manually trigger it anytime.
 
 ## Cost Estimates
 

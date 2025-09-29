@@ -31,7 +31,7 @@ test-coverage:
 # ETL
 .PHONY: etl
 etl:
-	uv run python etl.py
+	uv run etl.py
 
 # Run servers
 .PHONY: api
@@ -40,7 +40,7 @@ api:
 
 .PHONY: mcp
 mcp:
-	uv run python mcp_server.py
+	uv run mcp_server.py
 
 # Clean
 .PHONY: clean
