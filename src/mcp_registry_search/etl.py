@@ -34,7 +34,7 @@ async def fetch_all_servers() -> list[dict[str, Any]]:
 
             # Check for next cursor
             metadata = data.get("metadata", {})
-            cursor = metadata.get("nextCursor")
+            cursor = metadata.get("next_cursor")
 
             print(f"  Fetched {len(batch)} servers (total: {len(servers)})")
 
