@@ -7,8 +7,7 @@ from urllib.parse import quote
 
 import httpx
 from openai import OpenAI
-from supabase import create_client, Client
-
+from supabase import Client, create_client
 
 REGISTRY_BASE_URL = "https://registry.modelcontextprotocol.io"
 
@@ -59,14 +58,16 @@ def filter_active_servers(servers: list[dict[str, Any]]) -> list[dict[str, Any]]
             continue
 
         # Extract relevant fields
-        active_servers.append({
-            "name": server.get("name", ""),
-            "description": server.get("description", ""),
-            "version": server.get("version", ""),
-            "repository": server.get("repository", {}),
-            "packages": server.get("packages", []),
-            "remotes": server.get("remotes", []),
-        })
+        active_servers.append(
+            {
+                "name": server.get("name", ""),
+                "description": server.get("description", ""),
+                "version": server.get("version", ""),
+                "repository": server.get("repository", {}),
+                "packages": server.get("packages", []),
+                "remotes": server.get("remotes", []),
+            }
+        )
 
     return active_servers
 
@@ -83,13 +84,11 @@ async def generate_embeddings(texts: list[str]) -> list[list[float]]:
     all_embeddings = []
 
     for i in range(0, len(texts), batch_size):
-        batch = texts[i:i + batch_size]
+        batch = texts[i : i + batch_size]
         print(f"  Processing batch {i // batch_size + 1}/{(len(texts) - 1) // batch_size + 1}")
 
         response = client.embeddings.create(
-            model="text-embedding-3-small",
-            input=batch,
-            encoding_format="float"
+            model="text-embedding-3-small", input=batch, encoding_format="float"
         )
 
         embeddings = [item.embedding for item in response.data]
@@ -99,9 +98,7 @@ async def generate_embeddings(texts: list[str]) -> list[list[float]]:
 
 
 async def upsert_servers_to_supabase(
-    supabase: Client,
-    servers: list[dict[str, Any]],
-    embeddings: list[list[float]]
+    supabase: Client, servers: list[dict[str, Any]], embeddings: list[list[float]]
 ):
     """Upsert servers and embeddings to Supabase."""
     print(f"Upserting {len(servers)} servers to Supabase...")
@@ -109,26 +106,25 @@ async def upsert_servers_to_supabase(
     # Prepare data for upsert
     rows = []
     for server, embedding in zip(servers, embeddings):
-        rows.append({
-            "name": server["name"],
-            "description": server["description"],
-            "version": server["version"],
-            "repository": server["repository"],
-            "packages": server["packages"],
-            "remotes": server["remotes"],
-            "embedding": embedding,
-        })
+        rows.append(
+            {
+                "name": server["name"],
+                "description": server["description"],
+                "version": server["version"],
+                "repository": server["repository"],
+                "packages": server["packages"],
+                "remotes": server["remotes"],
+                "embedding": embedding,
+            }
+        )
 
     # Upsert in batches (Supabase has a limit)
     batch_size = 100
     for i in range(0, len(rows), batch_size):
-        batch = rows[i:i + batch_size]
+        batch = rows[i : i + batch_size]
         print(f"  Upserting batch {i // batch_size + 1}/{(len(rows) - 1) // batch_size + 1}")
 
-        supabase.table("mcp_servers").upsert(
-            batch,
-            on_conflict="name"
-        ).execute()
+        supabase.table("mcp_servers").upsert(batch, on_conflict="name").execute()
 
     print("Upsert completed!")
 
@@ -154,10 +150,7 @@ async def main():
     print(f"Filtered to {len(active_servers)} active servers (latest versions)")
 
     # Create search texts
-    search_texts = [
-        f"{server['name']} {server['description']}"
-        for server in active_servers
-    ]
+    search_texts = [f"{server['name']} {server['description']}" for server in active_servers]
 
     # Generate embeddings
     embeddings = await generate_embeddings(search_texts)
@@ -168,5 +161,10 @@ async def main():
     print("ETL pipeline completed successfully!")
 
 
-if __name__ == "__main__":
+def cli_main():
+    """CLI entry point."""
     asyncio.run(main())
+
+
+if __name__ == "__main__":
+    cli_main()

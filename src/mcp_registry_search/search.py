@@ -26,7 +26,7 @@ class HybridSearch:
         query: str,
         limit: int = 10,
         full_text_weight: float = 1.0,
-        semantic_weight: float = 1.0
+        semantic_weight: float = 1.0,
     ) -> list[dict[str, Any]]:
         """
         Perform hybrid search combining full-text and semantic search.
@@ -42,9 +42,7 @@ class HybridSearch:
         """
         # Generate query embedding
         response = self.openai_client.embeddings.create(
-            model="text-embedding-3-small",
-            input=query,
-            encoding_format="float"
+            model="text-embedding-3-small", input=query, encoding_format="float"
         )
         query_embedding = response.data[0].embedding
 
@@ -56,8 +54,8 @@ class HybridSearch:
                 "query_embedding": query_embedding,
                 "match_limit": limit,
                 "full_text_weight": full_text_weight,
-                "semantic_weight": semantic_weight
-            }
+                "semantic_weight": semantic_weight,
+            },
         ).execute()
 
         return result.data
@@ -73,10 +71,12 @@ class HybridSearch:
         Returns:
             List of server dictionaries
         """
-        result = self.supabase.table("mcp_servers") \
-            .select("name,description,version,repository,packages,remotes") \
-            .order("name") \
-            .range(offset, offset + limit - 1) \
+        result = (
+            self.supabase.table("mcp_servers")
+            .select("name,description,version,repository,packages,remotes")
+            .order("name")
+            .range(offset, offset + limit - 1)
             .execute()
+        )
 
         return result.data

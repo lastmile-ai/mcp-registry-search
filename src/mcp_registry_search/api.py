@@ -1,6 +1,5 @@
 """FastAPI application for MCP registry search."""
 
-import asyncio
 import os
 from typing import Annotated
 
@@ -8,13 +7,12 @@ from fastapi import FastAPI, Header, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
-from search import HybridSearch
-
+from mcp_registry_search.search import HybridSearch
 
 app = FastAPI(
     title="MCP Registry Search API",
     description="Semantic search API for Model Context Protocol (MCP) servers",
-    version="0.1.0"
+    version="0.1.0",
 )
 
 # Enable CORS
@@ -32,6 +30,7 @@ search_engine = HybridSearch()
 
 class SearchResponse(BaseModel):
     """Search response model."""
+
     results: list[dict]
     query: str
     limit: int
@@ -40,6 +39,7 @@ class SearchResponse(BaseModel):
 
 class ServersResponse(BaseModel):
     """List servers response model."""
+
     servers: list[dict]
     limit: int
     offset: int
@@ -56,8 +56,8 @@ def root():
             "/search": "Search MCP servers",
             "/servers": "List all MCP servers",
             "/health": "Health check",
-            "/docs": "API documentation"
-        }
+            "/docs": "API documentation",
+        },
     }
 
 
@@ -71,8 +71,12 @@ def health():
 def search(
     q: Annotated[str, Query(description="Search query")],
     limit: Annotated[int, Query(ge=1, le=100, description="Maximum number of results")] = 10,
-    full_text_weight: Annotated[float, Query(ge=0, le=10, description="Weight for full-text search")] = 1.0,
-    semantic_weight: Annotated[float, Query(ge=0, le=10, description="Weight for semantic search")] = 1.0,
+    full_text_weight: Annotated[
+        float, Query(ge=0, le=10, description="Weight for full-text search")
+    ] = 1.0,
+    semantic_weight: Annotated[
+        float, Query(ge=0, le=10, description="Weight for semantic search")
+    ] = 1.0,
 ):
     """
     Search MCP servers using hybrid search (full-text + semantic).
@@ -83,18 +87,10 @@ def search(
     - **semantic_weight**: Weight for semantic search (0-10, default: 1.0)
     """
     results = search_engine.search(
-        query=q,
-        limit=limit,
-        full_text_weight=full_text_weight,
-        semantic_weight=semantic_weight
+        query=q, limit=limit, full_text_weight=full_text_weight, semantic_weight=semantic_weight
     )
 
-    return SearchResponse(
-        results=results,
-        query=q,
-        limit=limit,
-        count=len(results)
-    )
+    return SearchResponse(results=results, query=q, limit=limit, count=len(results))
 
 
 @app.get("/servers", response_model=ServersResponse)
@@ -110,12 +106,7 @@ def list_servers(
     """
     servers = search_engine.list_all_servers(limit=limit, offset=offset)
 
-    return ServersResponse(
-        servers=servers,
-        limit=limit,
-        offset=offset,
-        count=len(servers)
-    )
+    return ServersResponse(servers=servers, limit=limit, offset=offset, count=len(servers))
 
 
 @app.get("/api/cron/etl")
@@ -133,19 +124,22 @@ async def etl_cron(authorization: Annotated[str | None, Header()] = None):
             raise HTTPException(status_code=401, detail="Unauthorized")
 
     # Import ETL main function
-    from etl import main as etl_main
+    from mcp_registry_search.etl import main as etl_main
 
     # Run ETL
     try:
         await etl_main()
-        return {
-            "status": "success",
-            "message": "ETL pipeline completed successfully"
-        }
+        return {"status": "success", "message": "ETL pipeline completed successfully"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"ETL failed: {str(e)}")
 
 
-if __name__ == "__main__":
+def main():
+    """Run the API server."""
     import uvicorn
+
     uvicorn.run(app, host="0.0.0.0", port=8000)
+
+
+if __name__ == "__main__":
+    main()

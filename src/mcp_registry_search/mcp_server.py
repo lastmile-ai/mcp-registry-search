@@ -4,13 +4,12 @@ import json
 
 from mcp.server.fastmcp import FastMCP
 
-from search import HybridSearch
-
+from mcp_registry_search.search import HybridSearch
 
 # Create FastMCP server
 mcp = FastMCP(
     "MCP Registry Search",
-    instructions="Search and discover MCP servers from the official registry using semantic and full-text search"
+    instructions="Search and discover MCP servers from the official registry using semantic and full-text search",
 )
 
 # Initialize search engine
@@ -19,10 +18,7 @@ search_engine = HybridSearch()
 
 @mcp.tool()
 def search_mcp_servers(
-    query: str,
-    limit: int = 10,
-    full_text_weight: float = 1.0,
-    semantic_weight: float = 1.0
+    query: str, limit: int = 10, full_text_weight: float = 1.0, semantic_weight: float = 1.0
 ) -> str:
     """
     Search MCP servers using hybrid search (full-text + semantic).
@@ -37,10 +33,7 @@ def search_mcp_servers(
         JSON string with search results including server names, descriptions, and metadata
     """
     results = search_engine.search(
-        query=query,
-        limit=limit,
-        full_text_weight=full_text_weight,
-        semantic_weight=semantic_weight
+        query=query, limit=limit, full_text_weight=full_text_weight, semantic_weight=semantic_weight
     )
 
     return json.dumps(results, indent=2)
@@ -82,7 +75,7 @@ def search_resource(query: str) -> str:
         output += f"## {i}. {result['name']}\n"
         output += f"**Version:** {result['version']}\n"
         output += f"**Description:** {result['description']}\n"
-        if result.get('repository'):
+        if result.get("repository"):
             output += f"**Repository:** {result['repository'].get('url', 'N/A')}\n"
         output += f"**Score:** {result.get('similarity_score', 0):.4f}\n\n"
 
@@ -108,7 +101,12 @@ Please search the MCP registry and recommend the most suitable server(s) for thi
 Consider the server's description, capabilities, and how well it matches my requirements."""
 
 
-if __name__ == "__main__":
+def main():
+    """Run the MCP server."""
     # Run with stdio transport by default
     # Can also use: transport="sse" or transport="streamable-http"
     mcp.run(transport="stdio")
+
+
+if __name__ == "__main__":
+    main()

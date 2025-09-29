@@ -13,6 +13,11 @@ dependencies = [
     "mcp>=1.13.1",
 ]
 
+[project.scripts]
+mcp-registry-api = "mcp_registry_search.api:main"
+mcp-registry-etl = "mcp_registry_search.etl:cli_main"
+mcp-registry-server = "mcp_registry_search.mcp_server:main"
+
 [dependency-groups]
 dev = [
     "ruff>=0.8.4",

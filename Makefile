@@ -31,16 +31,16 @@ test-coverage:
 # ETL
 .PHONY: etl
 etl:
-	uv run etl.py
+	uv run mcp-registry-etl
 
 # Run servers
 .PHONY: api
 api:
-	uv run uvicorn api:app --reload
+	uv run uvicorn mcp_registry_search.api:app --reload
 
 .PHONY: mcp
 mcp:
-	uv run mcp_server.py
+	uv run mcp-registry-server
 
 # Clean
 .PHONY: clean
