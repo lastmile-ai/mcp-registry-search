@@ -24,8 +24,16 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Initialize search engine
-search_engine = HybridSearch()
+# Lazy initialization of search engine
+_search_engine = None
+
+
+def get_search_engine():
+    """Get or create search engine instance."""
+    global _search_engine
+    if _search_engine is None:
+        _search_engine = HybridSearch()
+    return _search_engine
 
 
 class SearchResponse(BaseModel):
@@ -86,7 +94,7 @@ def search(
     - **full_text_weight**: Weight for full-text search (0-10, default: 1.0)
     - **semantic_weight**: Weight for semantic search (0-10, default: 1.0)
     """
-    results = search_engine.search(
+    results = get_search_engine().search(
         query=q, limit=limit, full_text_weight=full_text_weight, semantic_weight=semantic_weight
     )
 
@@ -104,7 +112,7 @@ def list_servers(
     - **limit**: Maximum number of results (1-1000, default: 100)
     - **offset**: Number of results to skip (default: 0)
     """
-    servers = search_engine.list_all_servers(limit=limit, offset=offset)
+    servers = get_search_engine().list_all_servers(limit=limit, offset=offset)
 
     return ServersResponse(servers=servers, limit=limit, offset=offset, count=len(servers))
 
