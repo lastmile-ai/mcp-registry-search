@@ -1,16 +1,4 @@
 {
-  "builds": [
-    {
-      "src": "src/mcp_registry_search/api.py",
-      "use": "@vercel/python"
-    }
-  ],
-  "routes": [
-    {
-      "src": "/(.*)",
-      "dest": "src/mcp_registry_search/api.py"
-    }
-  ],
   "crons": [
     {
       "path": "/api/cron/etl",
