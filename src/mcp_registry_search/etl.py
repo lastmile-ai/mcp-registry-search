@@ -6,6 +6,7 @@ from typing import Any
 from urllib.parse import quote
 
 import httpx
+from dotenv import load_dotenv
 from openai import OpenAI
 from supabase import Client, create_client
 
@@ -129,8 +130,12 @@ async def upsert_servers_to_supabase(
     print("Upsert completed!")
 
 
-async def main():
-    """Run the ETL pipeline."""
+async def main(limit: int | None = None):
+    """Run the ETL pipeline.
+
+    Args:
+        limit: Optional limit on number of servers to process (for testing)
+    """
     # Initialize Supabase client
     supabase_url = os.getenv("SUPABASE_URL")
     supabase_key = os.getenv("SUPABASE_KEY")
@@ -149,6 +154,11 @@ async def main():
     active_servers = filter_active_servers(all_servers)
     print(f"Filtered to {len(active_servers)} active servers (latest versions)")
 
+    # Apply limit if specified (for testing)
+    if limit:
+        active_servers = active_servers[:limit]
+        print(f"🧪 Test mode: Limited to {limit} servers")
+
     # Create search texts
     search_texts = [f"{server['name']} {server['description']}" for server in active_servers]
 
@@ -158,11 +168,12 @@ async def main():
     # Upsert to Supabase
     await upsert_servers_to_supabase(supabase, active_servers, embeddings)
 
-    print("ETL pipeline completed successfully!")
+    print("✅ ETL pipeline completed successfully!")
 
 
 def cli_main():
     """CLI entry point."""
+    load_dotenv()
     asyncio.run(main())
 
 

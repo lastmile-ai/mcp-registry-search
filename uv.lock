@@ -604,6 +604,7 @@ dependencies = [
     { name = "mcp" },
     { name = "openai" },
     { name = "pydantic" },
+    { name = "python-dotenv" },
     { name = "supabase" },
     { name = "uvicorn" },
 ]
@@ -623,6 +624,7 @@ requires-dist = [
     { name = "mcp", specifier = ">=1.13.1" },
     { name = "openai", specifier = ">=1.58.0" },
     { name = "pydantic", specifier = ">=2.10.0" },
+    { name = "python-dotenv", specifier = ">=1.0.0" },
     { name = "supabase", specifier = ">=2.10.0" },
     { name = "uvicorn", specifier = ">=0.32.0" },
 ]
