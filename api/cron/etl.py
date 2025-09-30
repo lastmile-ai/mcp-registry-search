@@ -3,13 +3,13 @@
 import os
 import sys
 from pathlib import Path
+from typing import Annotated
+
+from fastapi import FastAPI, Header, HTTPException
 
 # Add src to Python path
 root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(root / "src"))
-
-from fastapi import FastAPI, Header, HTTPException
-from typing import Annotated
 
 app = FastAPI()
 

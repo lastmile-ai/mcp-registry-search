@@ -1,8 +1,8 @@
 """Search functionality using Supabase hybrid search."""
 
-import os
 import logging
-from typing import Any, Optional
+import os
+from typing import Any
 
 from openai import OpenAI
 from supabase import Client, create_client
@@ -13,7 +13,12 @@ logger = logging.getLogger(__name__)
 class HybridSearch:
     """Hybrid search engine using Supabase full-text + vector search."""
 
-    def __init__(self, supabase_url: Optional[str] = None, supabase_key: Optional[str] = None, openai_api_key: Optional[str] = None):
+    def __init__(
+        self,
+        supabase_url: str | None = None,
+        supabase_key: str | None = None,
+        openai_api_key: str | None = None,
+    ):
         """Initialize the search engine with Supabase client.
 
         Args:
@@ -25,12 +30,16 @@ class HybridSearch:
         supabase_key = (supabase_key or os.getenv("SUPABASE_KEY", "")).strip()
         openai_api_key = (openai_api_key or os.getenv("OPENAI_API_KEY", "")).strip()
 
-        logger.info(f"Initializing HybridSearch with supabase_url={supabase_url[:30] if supabase_url else 'None'}...")
+        logger.info(
+            f"Initializing HybridSearch with supabase_url={supabase_url[:30] if supabase_url else 'None'}..."
+        )
         logger.info(f"SUPABASE_KEY present: {bool(supabase_key)}")
         logger.info(f"OPENAI_API_KEY present: {bool(openai_api_key)}")
 
         if not supabase_url or not supabase_key:
-            logger.error(f"Missing credentials - URL: {bool(supabase_url)}, KEY: {bool(supabase_key)}")
+            logger.error(
+                f"Missing credentials - URL: {bool(supabase_url)}, KEY: {bool(supabase_key)}"
+            )
             raise ValueError("SUPABASE_URL and SUPABASE_KEY must be set")
 
         if not openai_api_key:

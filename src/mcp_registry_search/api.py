@@ -80,7 +80,9 @@ def debug():
     """Debug endpoint to check environment."""
     return {
         "env_vars": {
-            "SUPABASE_URL": os.getenv("SUPABASE_URL", "NOT_SET")[:30] + "..." if os.getenv("SUPABASE_URL") else "NOT_SET",
+            "SUPABASE_URL": os.getenv("SUPABASE_URL", "NOT_SET")[:30] + "..."
+            if os.getenv("SUPABASE_URL")
+            else "NOT_SET",
             "SUPABASE_KEY": "SET" if os.getenv("SUPABASE_KEY") else "NOT_SET",
             "OPENAI_API_KEY": "SET" if os.getenv("OPENAI_API_KEY") else "NOT_SET",
         }
