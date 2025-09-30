@@ -4,5 +4,11 @@
       "path": "/api/cron/etl",
       "schedule": "0 0 * * *"
     }
+  ],
+  "rewrites": [
+    { "source": "/sse", "destination": "/api/sse" },
+    { "source": "/sse/(.*)", "destination": "/api/sse" },
+    { "source": "/messages", "destination": "/api/messages" },
+    { "source": "/messages/(.*)", "destination": "/api/messages" }
   ]
 }

@@ -1,0 +1,11 @@
+# Exclude local/dev-only or heavy files from Vercel upload
+main.py
+.venv/
+dist/
+logs/
+tests/
+apps/
+__pycache__/
+*.log
+*.sqlite
+*.db
