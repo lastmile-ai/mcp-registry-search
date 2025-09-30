@@ -75,6 +75,18 @@ def health():
     return {"status": "healthy"}
 
 
+@app.get("/debug")
+def debug():
+    """Debug endpoint to check environment."""
+    return {
+        "env_vars": {
+            "SUPABASE_URL": os.getenv("SUPABASE_URL", "NOT_SET")[:30] + "..." if os.getenv("SUPABASE_URL") else "NOT_SET",
+            "SUPABASE_KEY": "SET" if os.getenv("SUPABASE_KEY") else "NOT_SET",
+            "OPENAI_API_KEY": "SET" if os.getenv("OPENAI_API_KEY") else "NOT_SET",
+        }
+    }
+
+
 @app.get("/search", response_model=SearchResponse)
 def search(
     q: Annotated[str, Query(description="Search query")],
@@ -94,11 +106,13 @@ def search(
     - **full_text_weight**: Weight for full-text search (0-10, default: 1.0)
     - **semantic_weight**: Weight for semantic search (0-10, default: 1.0)
     """
-    results = get_search_engine().search(
-        query=q, limit=limit, full_text_weight=full_text_weight, semantic_weight=semantic_weight
-    )
-
-    return SearchResponse(results=results, query=q, limit=limit, count=len(results))
+    try:
+        results = get_search_engine().search(
+            query=q, limit=limit, full_text_weight=full_text_weight, semantic_weight=semantic_weight
+        )
+        return SearchResponse(results=results, query=q, limit=limit, count=len(results))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Search failed: {str(e)}")
 
 
 @app.get("/servers", response_model=ServersResponse)
@@ -112,9 +126,11 @@ def list_servers(
     - **limit**: Maximum number of results (1-1000, default: 100)
     - **offset**: Number of results to skip (default: 0)
     """
-    servers = get_search_engine().list_all_servers(limit=limit, offset=offset)
-
-    return ServersResponse(servers=servers, limit=limit, offset=offset, count=len(servers))
+    try:
+        servers = get_search_engine().list_all_servers(limit=limit, offset=offset)
+        return ServersResponse(servers=servers, limit=limit, offset=offset, count=len(servers))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"List servers failed: {str(e)}")
 
 
 @app.get("/api/cron/etl")

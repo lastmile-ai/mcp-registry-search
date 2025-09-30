@@ -12,8 +12,16 @@ mcp = FastMCP(
     instructions="Search and discover MCP servers from the official registry using semantic and full-text search",
 )
 
-# Initialize search engine
-search_engine = HybridSearch()
+# Lazy initialization of search engine
+_search_engine = None
+
+
+def get_search_engine():
+    """Get or create search engine instance."""
+    global _search_engine
+    if _search_engine is None:
+        _search_engine = HybridSearch()
+    return _search_engine
 
 
 @mcp.tool()
@@ -32,7 +40,7 @@ def search_mcp_servers(
     Returns:
         JSON string with search results including server names, descriptions, and metadata
     """
-    results = search_engine.search(
+    results = get_search_engine().search(
         query=query, limit=limit, full_text_weight=full_text_weight, semantic_weight=semantic_weight
     )
 
@@ -51,7 +59,7 @@ def list_mcp_servers(limit: int = 100, offset: int = 0) -> str:
     Returns:
         JSON string with list of all servers
     """
-    servers = search_engine.list_all_servers(limit=limit, offset=offset)
+    servers = get_search_engine().list_all_servers(limit=limit, offset=offset)
 
     return json.dumps(servers, indent=2)
 
@@ -67,7 +75,7 @@ def search_resource(query: str) -> str:
     Returns:
         Search results as a formatted string
     """
-    results = search_engine.search(query=query, limit=10)
+    results = get_search_engine().search(query=query, limit=10)
 
     # Format results as readable text
     output = f"# Search Results for: {query}\n\n"
