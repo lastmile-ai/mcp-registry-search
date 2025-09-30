@@ -8,7 +8,7 @@ Semantic search API for MCP (Model Context Protocol) servers using hybrid search
 
 Query the registry using the `/search` endpoint:
 
-**Endpoint:** `https://mcp-registry-search.vercel.app/search?q=kubernetes&limit=2`
+**Endpoint:** https://mcp-registry-search.vercel.app/search?q=kubernetes&limit=2
 
 **Example:**
 ```bash
@@ -71,7 +71,7 @@ curl "https://mcp-registry-search.vercel.app/search?q=kubernetes&limit=2"
 
 List all servers with pagination using the `/servers` endpoint:
 
-**Endpoint:** `https://mcp-registry-search.vercel.app/servers?limit=100&offset=0`
+**Endpoint:** https://mcp-registry-search.vercel.app/servers?limit=10&offset=0
 
 **Example:**
 ```bash
@@ -86,7 +86,7 @@ curl "https://mcp-registry-search.vercel.app/servers?limit=5"
 
 Connect to the MCP server via SSE for direct integration with MCP clients:
 
-**Endpoint:** `https://mcp-registry-search.vercel.app/api/sse`
+**Endpoint:** https://mcp-registry-search.vercel.app/api/sse
 
 **Available Tools:**
 - `search_mcp_servers(query, limit, full_text_weight, semantic_weight)` - Search servers using hybrid search
