@@ -2,6 +2,110 @@
 
 Semantic search API for MCP (Model Context Protocol) servers using hybrid search (BM25 + embeddings).
 
+## Usage
+
+### Search REST API
+
+Query the registry using the `/search` endpoint:
+
+**Endpoint:** `https://mcp-registry-search.vercel.app/search?q=kubernetes&limit=2`
+
+**Example:**
+```bash
+curl "https://mcp-registry-search.vercel.app/search?q=kubernetes&limit=2"
+```
+
+**Example Response:**
+```json
+{
+  "results": [
+    {
+      "id": 259,
+      "name": "io.github.vfarcic/dot-ai",
+      "description": "AI-powered development platform for Kubernetes deployments and intelligent automation",
+      "version": "0.101.0",
+      "repository": {
+        "url": "https://github.com/vfarcic/dot-ai",
+        "source": "github"
+      },
+      "packages": [
+        {
+          "version": "0.101.0",
+          "transport": {
+            "type": "stdio"
+          },
+          "identifier": "@vfarcic/dot-ai",
+          "registryType": "npm"
+        }
+      ],
+      "remotes": [],
+      "similarity_score": 0.606411385574579
+    },
+    {
+      "id": 272,
+      "name": "io.github.containers/kubernetes-mcp-server",
+      "description": "An MCP server that provides [describe what your server does]",
+      "version": "1.0.0",
+      "repository": {
+        "url": "https://github.com/containers/kubernetes-mcp-server",
+        "source": "github"
+      },
+      "packages": [],
+      "remotes": [],
+      "similarity_score": 0.451448836663574
+    }
+  ],
+  "query": "kubernetes",
+  "limit": 2,
+  "count": 2
+}
+```
+
+**Query Parameters:**
+- `q` (required): Search query string
+- `limit` (optional): Maximum number of results (default: 10)
+- `full_text_weight` (optional): Weight for full-text search (default: 1.0)
+- `semantic_weight` (optional): Weight for semantic search (default: 1.0)
+
+### List Servers API
+
+List all servers with pagination using the `/servers` endpoint:
+
+**Endpoint:** `https://mcp-registry-search.vercel.app/servers?limit=100&offset=0`
+
+**Example:**
+```bash
+curl "https://mcp-registry-search.vercel.app/servers?limit=5"
+```
+
+**Query Parameters:**
+- `limit` (optional): Maximum number of results (default: 100)
+- `offset` (optional): Number of results to skip (default: 0)
+
+### MCP Server
+
+Connect to the MCP server via SSE for direct integration with MCP clients:
+
+**Endpoint:** `https://mcp-registry-search.vercel.app/api/sse`
+
+**Available Tools:**
+- `search_mcp_servers(query, limit, full_text_weight, semantic_weight)` - Search servers using hybrid search
+- `list_mcp_servers(limit, offset)` - List all servers with pagination
+
+**Add to your MCP client config:**
+```json
+{
+  "mcpServers": {
+    "registry-search": {
+      "url": "https://mcp-registry-search.vercel.app/api/sse",
+      "transport": {
+        "type": "sse"
+      }
+    }
+  }
+}
+```
+
 ## Features
 
 - 🔍 **Hybrid search** combining lexical (PostgreSQL full-text) and semantic (pgvector) search
@@ -164,6 +268,38 @@ vercel
 
 **Automatic ETL Updates:**
 The project includes a Vercel Cron job that runs nightly at midnight (UTC) to refresh the server index. The cron job calls `/api/cron/etl` which is protected by the `CRON_SECRET` environment variable.
+
+### Public SSE Proxy (Edge)
+
+Expose an authenticated upstream SSE endpoint publicly by proxying through a Vercel Edge Function that injects the bearer token and streams responses.
+
+1) Configure env vars (in Vercel):
+```bash
+vercel env add UPSTREAM_SSE_URL   # e.g. https://<host>/sse
+vercel env add UPSTREAM_SSE_TOKEN # bearer token for upstream
+```
+
+Alternative names supported for the token: `LM_API_KEY` or `LM_API_TOKEN`.
+
+2) Endpoint path
+- The SSE proxy is available at `/api/sse` (see `api/sse.ts`).
+- The MCP messages proxy is available at `/api/messages` (see `api/messages.ts`).
+- Rewrites expose root paths: `/sse` → `/api/sse`, `/messages` → `/api/messages` for MCP clients that expect root-level endpoints.
+
+3) CORS and streaming
+- CORS: `Access-Control-Allow-Origin: *`
+- Streaming: Edge Runtime streams SSE by default; cache disabled.
+
+4) Example usage
+```bash
+curl -N https://<your-project>.vercel.app/api/sse
+# or using the root rewrite
+curl -N https://<your-project>.vercel.app/sse
+```
+
+5) Custom upstream per deployment (optional)
+- Override with `UPSTREAM_SSE_URL` in env without changing code.
+- Messages upstream auto-derives from the SSE URL, or set `UPSTREAM_MESSAGES_URL` explicitly if needed.
 
 ### FastMCP Server
 
