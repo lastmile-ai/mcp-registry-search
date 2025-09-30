@@ -1,25 +1,45 @@
 """Search functionality using Supabase hybrid search."""
 
 import os
-from typing import Any
+import logging
+from typing import Any, Optional
 
 from openai import OpenAI
 from supabase import Client, create_client
+
+logger = logging.getLogger(__name__)
 
 
 class HybridSearch:
     """Hybrid search engine using Supabase full-text + vector search."""
 
-    def __init__(self):
-        """Initialize the search engine with Supabase client."""
-        supabase_url = os.getenv("SUPABASE_URL")
-        supabase_key = os.getenv("SUPABASE_KEY")
+    def __init__(self, supabase_url: Optional[str] = None, supabase_key: Optional[str] = None, openai_api_key: Optional[str] = None):
+        """Initialize the search engine with Supabase client.
+
+        Args:
+            supabase_url: Supabase URL (falls back to SUPABASE_URL env var)
+            supabase_key: Supabase key (falls back to SUPABASE_KEY env var)
+            openai_api_key: OpenAI API key (falls back to OPENAI_API_KEY env var)
+        """
+        supabase_url = (supabase_url or os.getenv("SUPABASE_URL", "")).strip()
+        supabase_key = (supabase_key or os.getenv("SUPABASE_KEY", "")).strip()
+        openai_api_key = (openai_api_key or os.getenv("OPENAI_API_KEY", "")).strip()
+
+        logger.info(f"Initializing HybridSearch with supabase_url={supabase_url[:30] if supabase_url else 'None'}...")
+        logger.info(f"SUPABASE_KEY present: {bool(supabase_key)}")
+        logger.info(f"OPENAI_API_KEY present: {bool(openai_api_key)}")
 
         if not supabase_url or not supabase_key:
+            logger.error(f"Missing credentials - URL: {bool(supabase_url)}, KEY: {bool(supabase_key)}")
             raise ValueError("SUPABASE_URL and SUPABASE_KEY must be set")
 
+        if not openai_api_key:
+            logger.error("Missing OPENAI_API_KEY")
+            raise ValueError("OPENAI_API_KEY must be set")
+
         self.supabase: Client = create_client(supabase_url, supabase_key)
-        self.openai_client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+        self.openai_client = OpenAI(api_key=openai_api_key)
+        logger.info("HybridSearch initialized successfully")
 
     def search(
         self,

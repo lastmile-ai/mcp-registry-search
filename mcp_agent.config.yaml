@@ -1,0 +1,18 @@
+# MCP-Agent Configuration File
+$schema: https://raw.githubusercontent.com/lastmile-ai/mcp-agent/refs/heads/main/schema/mcp-agent.config.schema.json
+
+# Execution engine: asyncio or temporal
+execution_engine: asyncio
+
+name: "mcp_registry_search"
+description: "Semantic search API for the MCP server registry using hybrid search (full-text + vector embeddings)"
+
+logger:
+  transports: [console, file]
+  level: info
+  path: logs/mcp-agent.log
+
+# No MCP servers needed for this application
+# (this server provides search tools, doesn't consume other MCP servers)
+# mcp:
+#   servers: {}
