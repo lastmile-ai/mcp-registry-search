@@ -1,6 +1,18 @@
 # MCP Registry Search
 
-Semantic search API for MCP (Model Context Protocol) servers using hybrid search (BM25 + embeddings).
+Semantic search API for MCP servers using the official Model Context Protocol registry.
+
+Use as:
+* **REST API (search)**: https://mcp-registry-search.vercel.app/search?q=kubernetes&limit=2
+* **REST API (list)**: https://mcp-registry-search.vercel.app/servers?limit=10&offset=0
+* **MCP Server (SSE)**: https://mcp-registry-search.vercel.app/api/sse
+
+Cron job reindexes the entire registry every night.
+
+Built with:
+* [mcp-agent cloud](https://mcp-agent.com/)
+* Supabase
+* Vercel
 
 ## Usage
 
@@ -135,12 +147,12 @@ Connect to the MCP server via SSE for direct integration with MCP clients:
          │ Search Query
          ↓
 ┌─────────────────┬─────────────────┐
-│   FastAPI REST  │  FastMCP Server │
+│   FastAPI REST  │mcp-agent Server │
 │      (Web)      │   (MCP Clients) │
 └─────────────────┴─────────────────┘
 ```
 
-## Setup
+## Development
 
 ### 1. Install dependencies
 
@@ -190,7 +202,7 @@ API available at `http://localhost:8000`
 
 **FastMCP (MCP Server):**
 ```bash
-uv run mcp_server.py
+uv run main.py
 ```
 
 ## API Usage
@@ -232,7 +244,7 @@ The FastMCP server provides:
   "mcpServers": {
     "registry-search": {
       "command": "uv",
-      "args": ["run", "mcp_server.py"],
+      "args": ["run", "main.py"],
       "cwd": "/path/to/mcp-registry-search",
       "env": {
         "OPENAI_API_KEY": "your-key",
@@ -301,12 +313,12 @@ curl -N https://<your-project>.vercel.app/sse
 - Override with `UPSTREAM_SSE_URL` in env without changing code.
 - Messages upstream auto-derives from the SSE URL, or set `UPSTREAM_MESSAGES_URL` explicitly if needed.
 
-### FastMCP Server
+### mcp-agent Server
+We use [mcp-agent cloud](https://mcp-agent.com) to deploy and host the MCP server. Under the covers, it's a FastMCP server (see [main.py](./main.py)).
 
-The FastMCP server can be:
-- Run locally and connected via stdio
-- Hosted on any server with Python support
-- Deployed as an SSE or HTTP endpoint (change `transport` in `mcp_server.py`)
+To do so yourself, you can run:
+* uv run mcp-agent login
+* uv run mcp-agent deploy
 
 ## Manual ETL Updates
 
@@ -327,27 +339,13 @@ curl -X GET https://your-project.vercel.app/api/cron/etl \
 
 The automatic nightly cron job handles updates, but you can manually trigger it anytime.
 
-## Cost Estimates
-
-**OpenAI Embeddings:**
-- ~500 servers × 1536 dimensions = ~$0.01 per full ETL run
-- Query embeddings: ~$0.00001 per search
-
-**Supabase:**
-- Free tier: 500MB database + 2GB bandwidth
-- Should be sufficient for MCP registry (~500 servers)
-
-**Vercel:**
-- Free tier: 100GB bandwidth
-- Serverless function invocations included
-
 ## Development
 
 **Project structure:**
 ```
 registry/
-├── api.py              # FastAPI REST API
-├── mcp_server.py       # FastMCP server
+├── api.py              # FastAPI REST API (hosted on Vercel)
+├── main.py             # MCP server (hosted on mcp-agent cloud)
 ├── search.py           # Search engine
 ├── etl.py              # ETL pipeline
 ├── schema.sql          # Supabase schema
@@ -358,4 +356,4 @@ registry/
 
 ## License
 
-Same as parent project (Apache 2.0)
+Apache 2.0

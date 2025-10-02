@@ -184,6 +184,33 @@ async def main():
             print(f"  - {server['name']} v{server['version']}")
 
 
+@mcp.resource("mcp-registry://search/{query}")
+def search_resource(query: str) -> str:
+    """Expose search results as a formatted text resource."""
+    engine = _search_engine or HybridSearch()
+    results = engine.search(query=query, limit=10)
+    output = f"# Search Results for: {query}\n\n"
+    for i, result in enumerate(results, 1):
+        output += f"## {i}. {result['name']}\n"
+        output += f"**Version:** {result['version']}\n"
+        output += f"**Description:** {result['description']}\n"
+        if result.get("repository"):
+            output += f"**Repository:** {result['repository'].get('url', 'N/A')}\n"
+        output += f"**Score:** {result.get('similarity_score', 0):.4f}\n\n"
+    return output
+
+
+@mcp.prompt()
+def find_mcp_server(task: str) -> str:
+    """Prompt template to help find the right MCP server for a task."""
+    return (
+        "I need to find an MCP server to help with the following task:\n\n"
+        f"{task}\n\n"
+        "Please search the MCP registry and recommend the most suitable server(s) for this purpose.\n"
+        "Consider the server's description, capabilities, and how well it matches my requirements."
+    )
+
+
 if __name__ == "__main__":
     asyncio.run(main())
 

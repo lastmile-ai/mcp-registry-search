@@ -102,7 +102,7 @@ class HybridSearch:
         """
         result = (
             self.supabase.table("mcp_servers")
-            .select("name,description,version,repository,packages,remotes")
+            .select("name,description,version,repository,packages,remotes,status,is_latest")
             .order("name")
             .range(offset, offset + limit - 1)
             .execute()

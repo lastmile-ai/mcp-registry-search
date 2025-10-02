@@ -34,7 +34,8 @@ async def fetch_all_servers() -> list[dict[str, Any]]:
 
             # Check for next cursor
             metadata = data.get("metadata", {})
-            cursor = metadata.get("next_cursor")
+            # Handle both snake_case and camelCase just in case
+            cursor = metadata.get("next_cursor") or metadata.get("nextCursor")
 
             print(f"  Fetched {len(batch)} servers (total: {len(servers)})")
 
@@ -44,33 +45,35 @@ async def fetch_all_servers() -> list[dict[str, Any]]:
     return servers
 
 
-def filter_active_servers(servers: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    """Filter to only active servers (latest versions only) and extract relevant fields."""
-    active_servers = []
+def transform_latest_servers(servers: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Select latest versions only; include status and other fields.
 
-    for server in servers:
-        # Only include active servers
-        if server.get("status") != "active":
-            continue
+    We index all latest servers regardless of status (including 'deleted') so that
+    future status changes are reflected. Downstream search will exclude 'deleted'.
+    """
+    latest = []
 
-        # Only include latest versions
-        meta = server.get("_meta", {}).get("io.modelcontextprotocol.registry/official", {})
+    for item in servers:
+        # Registry format: { server: {..}, _meta: { 'io.modelcontextprotocol.registry/official': {...} } }
+        srv = item.get("server", {})
+        meta = item.get("_meta", {}).get("io.modelcontextprotocol.registry/official", {})
         if not meta.get("isLatest", False):
             continue
 
-        # Extract relevant fields
-        active_servers.append(
+        latest.append(
             {
-                "name": server.get("name", ""),
-                "description": server.get("description", ""),
-                "version": server.get("version", ""),
-                "repository": server.get("repository", {}),
-                "packages": server.get("packages", []),
-                "remotes": server.get("remotes", []),
+                "name": srv.get("name", ""),
+                "description": srv.get("description", ""),
+                "version": srv.get("version", ""),
+                "repository": srv.get("repository", {}),
+                "packages": srv.get("packages", []),
+                "remotes": srv.get("remotes", []),
+                "status": meta.get("status", "unknown"),
+                "is_latest": True,
             }
         )
 
-    return active_servers
+    return latest
 
 
 async def generate_embeddings(texts: list[str]) -> list[list[float]]:
@@ -99,32 +102,36 @@ async def generate_embeddings(texts: list[str]) -> list[list[float]]:
 
 
 async def upsert_servers_to_supabase(
-    supabase: Client, servers: list[dict[str, Any]], embeddings: list[list[float]]
+    supabase: Client, servers: list[dict[str, Any]], embedding_map: dict[str, list[float] | None]
 ):
-    """Upsert servers and embeddings to Supabase."""
+    """Upsert servers and embeddings to Supabase.
+
+    embedding_map provides an embedding (or None) by server name. Deleted servers will
+    be upserted with null embeddings so search can safely exclude them.
+    """
     print(f"Upserting {len(servers)} servers to Supabase...")
 
-    # Prepare data for upsert
     rows = []
-    for server, embedding in zip(servers, embeddings):
+    for server in servers:
+        name = server["name"]
         rows.append(
             {
-                "name": server["name"],
+                "name": name,
                 "description": server["description"],
                 "version": server["version"],
                 "repository": server["repository"],
                 "packages": server["packages"],
                 "remotes": server["remotes"],
-                "embedding": embedding,
+                "status": server.get("status", "unknown"),
+                "is_latest": bool(server.get("is_latest", False)),
+                "embedding": embedding_map.get(name),
             }
         )
 
-    # Upsert in batches (Supabase has a limit)
     batch_size = 100
     for i in range(0, len(rows), batch_size):
         batch = rows[i : i + batch_size]
         print(f"  Upserting batch {i // batch_size + 1}/{(len(rows) - 1) // batch_size + 1}")
-
         supabase.table("mcp_servers").upsert(batch, on_conflict="name").execute()
 
     print("Upsert completed!")
@@ -150,23 +157,33 @@ async def main(limit: int | None = None):
     all_servers = await fetch_all_servers()
     print(f"Fetched {len(all_servers)} total servers")
 
-    # Filter to active servers (latest versions only)
-    active_servers = filter_active_servers(all_servers)
-    print(f"Filtered to {len(active_servers)} active servers (latest versions)")
+    # Select latest versions (all statuses)
+    latest_servers = transform_latest_servers(all_servers)
+    print(f"Selected {len(latest_servers)} latest servers (all statuses)")
 
     # Apply limit if specified (for testing)
     if limit:
-        active_servers = active_servers[:limit]
+        latest_servers = latest_servers[:limit]
         print(f"🧪 Test mode: Limited to {limit} servers")
 
     # Create search texts
-    search_texts = [f"{server['name']} {server['description']}" for server in active_servers]
+    # Generate embeddings only for non-deleted servers
+    non_deleted = [s for s in latest_servers if (s.get("status", "").lower() != "deleted")]
+    search_texts = [f"{s['name']} {s['description']}" for s in non_deleted]
 
     # Generate embeddings
-    embeddings = await generate_embeddings(search_texts)
+    embeddings = await generate_embeddings(search_texts) if search_texts else []
+
+    # Build name->embedding map
+    embedding_map: dict[str, list[float] | None] = {}
+    for s, emb in zip(non_deleted, embeddings):
+        embedding_map[s["name"]] = emb
+    # Deleted servers (and any without embedding) get None
+    for s in latest_servers:
+        embedding_map.setdefault(s["name"], None)
 
     # Upsert to Supabase
-    await upsert_servers_to_supabase(supabase, active_servers, embeddings)
+    await upsert_servers_to_supabase(supabase, latest_servers, embedding_map)
 
     print("✅ ETL pipeline completed successfully!")
 
